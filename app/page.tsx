@@ -1,6 +1,6 @@
 import React from 'react'
 
-const App = () => {
+export default function App() {
   return (
     <div>page</div>
   )

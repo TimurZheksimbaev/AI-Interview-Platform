@@ -18,6 +18,14 @@ import Link from "next/link";
 import { toast } from "sonner";
 import FormField from "./FormField";
 import { useRouter } from "next/navigation";
+import { signIn, signUp } from "@/lib/actions/auth.action";
+import { auth } from "@/firebase/client";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
+
+
 const authFormSchema = (type: FormType) => {
   return z.object({
     name: type === "sign-up" ? z.string().min(5) : z.string().optional(),
@@ -44,12 +52,48 @@ const AuthForm = ({ type }: AuthFormProps) => {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       if (type === "sign-up") {
+        const { name, email, password } = values;
+        const userCredentials = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+
+        const result = await signUp({
+          uid: userCredentials.user.uid,
+          name: name || "",
+          email: email,
+          password: password,
+        });
+
+        if (!result?.success) {
+          toast.error(result?.message || "An error occurred");
+          return;
+        }
+
         toast.success("Account created successfully");
         router.push("/sign-in");
       } else {
+        const { email, password } = values;
+        const userCredentials = await signInWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+        const idToken = await userCredentials.user.getIdToken();
+        if (!idToken) {
+          toast.error("Failed to sign in");
+          return;
+        }
+
+        await signIn({
+          email,
+          idToken: idToken,
+        });
+
         toast.success("Sign in successfully");
         router.push("/");
       }
@@ -74,7 +118,7 @@ const AuthForm = ({ type }: AuthFormProps) => {
             onSubmit={form.handleSubmit(onSubmit)}
             className="w-full space-y-6 mt-4 form"
           >
-            {!isSignIn && ( 
+            {!isSignIn && (
               <FormField
                 control={form.control}
                 name="name"

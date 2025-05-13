@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { vapi } from "@/lib/vapi.sdk";
+import { createFeedback } from "@/lib/actions/feedback.action";
 
 interface SavedMessage {
   role: "user" | "system" | "assistant";
@@ -67,11 +68,12 @@ const Agent = ({
   const handleGenerateFeedback = async (messages: SavedMessage[]) => {
     console.log("Generate feedback here");
 
-    const { success, id } = {
-      success: true,
-      id: "feedback-id",
-    };
-    if (success && id) {
+    const { success, feedbackId } = await createFeedback({
+      interviewId: interviewId!,
+      userId: userId!,
+      transcript: messages
+    });
+    if (success && feedbackId) {
       router.push(`/interview/${interviewId}/feedback`);
     }
   };
